@@ -21,11 +21,6 @@ TARGET_ARCH=${TARGET_ARCH-"amd64"}
 ROOT=${PWD}
 
 cd external/istio
-rm -rf out/linux_${TARGET_ARCH}; 
-
-# BUILDINFO=$(mktemp)
-# "${PWD}/common/scripts/report_build_info.sh" > "${BUILDINFO}"
-# --mount type=bind,source=${BUILDINFO},destination=${BUILDINFO},readonly \
 
 CONDITIONAL_HOST_MOUNTS="\
     --mount "type=bind,source=${ROOT}/external/package,destination=/home/package" \
@@ -38,4 +33,5 @@ GOOS_LOCAL=linux TARGET_OS=linux TARGET_ARCH=${TARGET_ARCH} \
     ISTIO_ZTUNNEL_LINUX_RELEASE_PATH="${ZTUNNEL_PATH_PATTERN/ARCH/${TARGET_ARCH}}" \
     BUILD_WITH_CONTAINER=1 \
     CONDITIONAL_HOST_MOUNTS="${CONDITIONAL_HOST_MOUNTS}" \
-    make build-linux
+    DOCKER_BUILD_VARIANTS=default DOCKER_TARGETS="docker.pilot" \
+    make docker

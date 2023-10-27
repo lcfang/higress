@@ -133,9 +133,10 @@ docker-build-base:
 export PARENT_GIT_TAG:=$(shell cat VERSION)
 export PARENT_GIT_REVISION:=$(TAG)
 
-export ENVOY_TAR_PATH:=/home/package/envoy.tar.gz
-
-ENVOY_PACKAGE_URL_PATTERN:=https://github.com/alibaba/higress/releases/download/v1.2.0/envoy-ARCH.tar.gz
+export ENVOY_TAR_PATH_PATTERN:=/home/package/envoy-ARCH.tar.gz
+export ENVOY_PACKAGE_URL_PATTERN:=https://github.com/alibaba/higress/releases/download/v1.2.0/envoy-ARCH.tar.gz
+ZTUNNEL_REPO_SHA:=$(shell grep ZTUNNEL_REPO_SHA ./istio/istio/istio.deps -A 4 | grep lastStableSHA | cut -f 4 -d '"')
+export ZTUNNEL_PATH_PATTERN:=/home/package/ztunnel-$(ZTUNNEL_REPO_SHA)-ARCH
 
 external/package/envoy-amd64.tar.gz:
 #	cd external/proxy; BUILD_WITH_CONTAINER=1 make test_release
@@ -146,11 +147,11 @@ external/package/envoy-arm64.tar.gz:
 	cd external/package; wget $(subst ARCH,arm64,${ENVOY_PACKAGE_URL_PATTERN})
 
 build-pilot:
-	TARGET_ARCH=amd64 ENVOY_PACKAGE_URL="$(subst ARCH,amd64,${ENVOY_PACKAGE_URL_PATTERN})" ./tools/hack/build-pilot.sh
-	TARGET_ARCH=arm64 ENVOY_PACKAGE_URL="$(subst ARCH,arm64,${ENVOY_PACKAGE_URL_PATTERN})" ./tools/hack/build-pilot.sh
+	TARGET_ARCH=amd64 ./tools/hack/build-pilot.sh
+	TARGET_ARCH=arm64 ./tools/hack/build-pilot.sh
 
 build-pilot-local:
-	TARGET_ARCH=${TARGET_ARCH} ENVOY_PACKAGE_URL="$(subst ARCH,${TARGET_ARCH},${ENVOY_PACKAGE_URL_PATTERN})" ./tools/hack/build-pilot.sh
+	TARGET_ARCH=${TARGET_ARCH} ./tools/hack/build-pilot.sh
 
 build-gateway: prebuild external/package/envoy-amd64.tar.gz external/package/envoy-arm64.tar.gz build-pilot
 	cd external/istio; BUILD_WITH_CONTAINER=1 BUILDX_PLATFORM=true DOCKER_BUILD_VARIANTS=default DOCKER_TARGETS="docker.proxyv2" make docker
@@ -162,7 +163,7 @@ build-istio: prebuild build-pilot
 	cd external/istio; BUILD_WITH_CONTAINER=1 BUILDX_PLATFORM=true DOCKER_BUILD_VARIANTS=default DOCKER_TARGETS="docker.pilot" make docker
 
 build-istio-local: prebuild build-pilot-local
-	cd external/istio; rm -rf out/linux_${GOARCH_LOCAL}; GOOS_LOCAL=linux TARGET_OS=linux BUILD_WITH_CONTAINER=1 BUILDX_PLATFORM=false DOCKER_BUILD_VARIANTS=default DOCKER_TARGETS="docker.pilot" make docker
+	TARGET_ARCH=${TARGET_ARCH} ./tools/hack/build-istio.sh
 
 build-wasmplugins:
 	./tools/hack/build-wasm-plugins.sh
