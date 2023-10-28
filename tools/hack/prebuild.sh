@@ -7,8 +7,6 @@ WORK_DIR=`cd $(dirname "$0")/../..;pwd`
 
 cd $WORK_DIR
 
-mkdir -p external/package
-
 envoy_repos=("go-control-plane" "envoy")
 
 for repo in ${envoy_repos[@]}; do
