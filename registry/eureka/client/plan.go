@@ -58,6 +58,7 @@ func NewPlan(client EurekaHttpClient, serviceName string, handler Handler) *Plan
 
 func (p *Plan) Stop() {
 	defer close(p.stop)
+	log.Infof("=====stop eureka plan")
 	p.stop <- struct{}{}
 }
 

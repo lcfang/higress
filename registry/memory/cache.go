@@ -32,7 +32,8 @@ type Cache interface {
 	DeleteServiceWrapper(service string)
 	PurgeStaleService()
 	UpdateServiceEntryEndpointWrapper(service, ip, regionId, zoneId, protocol string, labels map[string]string)
-	GetServiceByEndpoints(requestVersions, endpoints map[string]bool, versionKey string, protocol common.Protocol) map[string][]string
+	GetServiceByEndpoints(requestVersions, endpoints map[string]bool, versionKey string,
+		protocol common.Protocol) map[string][]string
 	GetAllServiceEntry() []*v1alpha3.ServiceEntry
 	GetAllServiceWrapper() []*ServiceWrapper
 	GetAllDestinationRuleWrapper() []*ingress.WrapperDestinationRule
@@ -60,7 +61,8 @@ type store struct {
 	deferedDelete map[string]struct{}
 }
 
-func (s *store) UpdateServiceEntryEndpointWrapper(service, ip, regionId, zoneId, protocol string, labels map[string]string) {
+func (s *store) UpdateServiceEntryEndpointWrapper(service, ip, regionId, zoneId, protocol string,
+	labels map[string]string) {
 	s.mux.Lock()
 	defer s.mux.Unlock()
 	if se, exist := s.sew[service]; exist {
@@ -123,6 +125,7 @@ func (s *store) DeleteServiceWrapper(service string) {
 	defer s.mux.Unlock()
 
 	if data, exist := s.sew[service]; exist {
+		log.Infof("===append delte list, host:%s", service)
 		s.toBeDeleted = append(s.toBeDeleted, data)
 		s.deferedDelete[service] = struct{}{}
 	}
@@ -143,7 +146,8 @@ func (s *store) PurgeStaleService() {
 // and the version of the service contained by the requestVersions. The result format is as below:
 // key: serviceName + "#@" + suffix
 // values: ["v1", "v2"] which has removed duplication
-func (s *store) GetServiceByEndpoints(requestVersions, endpoints map[string]bool, versionKey string, protocol common.Protocol) map[string][]string {
+func (s *store) GetServiceByEndpoints(requestVersions, endpoints map[string]bool, versionKey string,
+	protocol common.Protocol) map[string][]string {
 	s.mux.RLock()
 	defer s.mux.RUnlock()
 
@@ -282,7 +286,8 @@ func (s *store) RemoveEndpointByIp(ip string) {
 				}
 			}
 			if idx != -1 {
-				data.ServiceEntry.Endpoints = append(data.ServiceEntry.Endpoints[:idx], data.ServiceEntry.Endpoints[idx+1:]...)
+				data.ServiceEntry.Endpoints = append(data.ServiceEntry.Endpoints[:idx],
+					data.ServiceEntry.Endpoints[idx+1:]...)
 			}
 			s.toBeUpdated = append(s.toBeUpdated, data)
 		}

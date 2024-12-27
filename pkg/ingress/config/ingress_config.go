@@ -153,7 +153,8 @@ type IngressConfig struct {
 	httpsConfigMgr *cert.ConfigMgr
 }
 
-func NewIngressConfig(localKubeClient kube.Client, xdsUpdater istiomodel.XDSUpdater, namespace string, clusterId cluster.ID) *IngressConfig {
+func NewIngressConfig(localKubeClient kube.Client, xdsUpdater istiomodel.XDSUpdater, namespace string,
+	clusterId cluster.ID) *IngressConfig {
 	if clusterId == "Kubernetes" {
 		clusterId = ""
 	}
@@ -186,7 +187,8 @@ func NewIngressConfig(localKubeClient kube.Client, xdsUpdater istiomodel.XDSUpda
 	config.http2rpcLister = http2rpcController.Lister()
 
 	higressConfigController := configmap.NewController(localKubeClient, clusterId, namespace)
-	config.configmapMgr = configmap.NewConfigmapMgr(xdsUpdater, namespace, higressConfigController, higressConfigController.Lister())
+	config.configmapMgr = configmap.NewConfigmapMgr(xdsUpdater, namespace, higressConfigController,
+		higressConfigController.Lister())
 
 	httpsConfigMgr, _ := cert.NewConfigMgr(namespace, localKubeClient.Kube())
 	config.httpsConfigMgr = httpsConfigMgr
@@ -392,7 +394,8 @@ func (m *IngressConfig) convertGateways(configs []common.WrapperConfig) []config
 			continue
 		}
 		if err := ingressController.ConvertGateway(&convertOptions, &cfg, httpsCredentialConfig); err != nil {
-			IngressLog.Errorf("Convert ingress %s/%s to gateway fail in cluster %s, err %v", cfg.Config.Namespace, cfg.Config.Name, clusterId, err)
+			IngressLog.Errorf("Convert ingress %s/%s to gateway fail in cluster %s, err %v", cfg.Config.Namespace,
+				cfg.Config.Name, clusterId, err)
 		}
 	}
 
@@ -443,7 +446,8 @@ func (m *IngressConfig) convertVirtualService(configs []common.WrapperConfig) []
 			continue
 		}
 		if err := ingressController.ConvertHTTPRoute(&convertOptions, &cfg); err != nil {
-			IngressLog.Errorf("Convert ingress %s/%s to HTTP route fail in cluster %s, err %v", cfg.Config.Namespace, cfg.Config.Name, clusterId, err)
+			IngressLog.Errorf("Convert ingress %s/%s to HTTP route fail in cluster %s, err %v", cfg.Config.Namespace,
+				cfg.Config.Name, clusterId, err)
 		}
 	}
 
@@ -478,14 +482,16 @@ func (m *IngressConfig) convertVirtualService(configs []common.WrapperConfig) []
 				continue
 			}
 			if err := ingressController.ApplyDefaultBackend(&convertOptions, &cfg); err != nil {
-				IngressLog.Errorf("Apply default backend on ingress %s/%s fail in cluster %s, err %v", cfg.Config.Namespace, cfg.Config.Name, clusterId, err)
+				IngressLog.Errorf("Apply default backend on ingress %s/%s fail in cluster %s, err %v",
+					cfg.Config.Namespace, cfg.Config.Name, clusterId, err)
 			}
 		}
 	}
 
 	// Apply annotation on virtual services
 	for _, virtualService := range convertOptions.VirtualServices {
-		m.annotationHandler.ApplyVirtualServiceHandler(virtualService.VirtualService, virtualService.WrapperConfig.AnnotationsConfig)
+		m.annotationHandler.ApplyVirtualServiceHandler(virtualService.VirtualService,
+			virtualService.WrapperConfig.AnnotationsConfig)
 	}
 
 	// Apply app root for per host.
@@ -529,8 +535,9 @@ func (m *IngressConfig) convertVirtualService(configs []common.WrapperConfig) []
 		out = append(out, config.Config{
 			Meta: config.Meta{
 				GroupVersionKind: gvk.VirtualService,
-				Name:             common.CreateConvertedName(constants.IstioIngressGatewayName, firstRoute.WrapperConfig.Config.Namespace, firstRoute.WrapperConfig.Config.Name, cleanHost),
-				Namespace:        m.namespace,
+				Name: common.CreateConvertedName(constants.IstioIngressGatewayName,
+					firstRoute.WrapperConfig.Config.Namespace, firstRoute.WrapperConfig.Config.Name, cleanHost),
+				Namespace: m.namespace,
 				Annotations: map[string]string{
 					common.ClusterIdAnnotation: firstRoute.ClusterId.String(),
 				},
@@ -558,7 +565,8 @@ func (m *IngressConfig) convertEnvoyFilter(convertOptions *common.ConvertOptions
 			http2rpc := route.WrapperConfig.AnnotationsConfig.Http2Rpc
 			if http2rpc != nil {
 				IngressLog.Infof("Found http2rpc for name %s", http2rpc.Name)
-				envoyFilter, err := m.constructHttp2RpcEnvoyFilter(http2rpc, route, m.namespace, initHttp2RpcGlobalConfig)
+				envoyFilter, err := m.constructHttp2RpcEnvoyFilter(http2rpc, route, m.namespace,
+					initHttp2RpcGlobalConfig)
 				if err != nil {
 					IngressLog.Infof("Construct http2rpc EnvoyFilter error %v", err)
 				} else {
@@ -668,14 +676,16 @@ func (m *IngressConfig) convertDestinationRule(configs []common.WrapperConfig) [
 			continue
 		}
 		if err := ingressController.ConvertTrafficPolicy(&convertOptions, &cfg); err != nil {
-			IngressLog.Errorf("Convert ingress %s/%s to destination rule fail in cluster %s, err %v", cfg.Config.Namespace, cfg.Config.Name, clusterId, err)
+			IngressLog.Errorf("Convert ingress %s/%s to destination rule fail in cluster %s, err %v",
+				cfg.Config.Namespace, cfg.Config.Name, clusterId, err)
 		}
 	}
 
 	IngressLog.Debugf("traffic policy number %d", len(convertOptions.Service2TrafficPolicy))
 
 	for _, wrapperTrafficPolicy := range convertOptions.Service2TrafficPolicy {
-		m.annotationHandler.ApplyTrafficPolicy(wrapperTrafficPolicy.TrafficPolicy, wrapperTrafficPolicy.PortTrafficPolicy, wrapperTrafficPolicy.WrapperConfig.AnnotationsConfig)
+		m.annotationHandler.ApplyTrafficPolicy(wrapperTrafficPolicy.TrafficPolicy,
+			wrapperTrafficPolicy.PortTrafficPolicy, wrapperTrafficPolicy.WrapperConfig.AnnotationsConfig)
 	}
 
 	// Merge multi-port traffic policy per service into one destination rule.
@@ -704,7 +714,8 @@ func (m *IngressConfig) convertDestinationRule(configs []common.WrapperConfig) [
 				ServiceKey:    key,
 			}
 		} else if wrapperTrafficPolicy.PortTrafficPolicy != nil {
-			dr.DestinationRule.TrafficPolicy.PortLevelSettings = append(dr.DestinationRule.TrafficPolicy.PortLevelSettings, wrapperTrafficPolicy.PortTrafficPolicy)
+			dr.DestinationRule.TrafficPolicy.PortLevelSettings = append(dr.DestinationRule.TrafficPolicy.PortLevelSettings,
+				wrapperTrafficPolicy.PortTrafficPolicy)
 		}
 
 		destinationRules[serviceName] = dr
@@ -731,7 +742,8 @@ func (m *IngressConfig) convertDestinationRule(configs []common.WrapperConfig) [
 				if portUpdated {
 					continue
 				}
-				dr.DestinationRule.TrafficPolicy.PortLevelSettings = append(dr.DestinationRule.TrafficPolicy.PortLevelSettings, portTrafficPolicy)
+				dr.DestinationRule.TrafficPolicy.PortLevelSettings = append(dr.DestinationRule.TrafficPolicy.PortLevelSettings,
+					portTrafficPolicy)
 			}
 		}
 	}
@@ -787,7 +799,8 @@ func (m *IngressConfig) applyAppRoot(convertOptions *common.ConvertOptions) {
 				WrapperConfig: wrapVS.WrapperConfig,
 				ClusterId:     wrapVS.WrapperConfig.AnnotationsConfig.ClusterId,
 			}
-			convertOptions.HTTPRoutes[host] = append([]*common.WrapperHTTPRoute{route}, convertOptions.HTTPRoutes[host]...)
+			convertOptions.HTTPRoutes[host] = append([]*common.WrapperHTTPRoute{route},
+				convertOptions.HTTPRoutes[host]...)
 		}
 	}
 }
@@ -1250,12 +1263,14 @@ func (m *IngressConfig) applyCanaryIngresses(convertOptions *common.ConvertOptio
 			continue
 		}
 		if err := ingressController.ApplyCanaryIngress(convertOptions, cfg); err != nil {
-			IngressLog.Errorf("Apply canary ingress %s/%s fail in cluster %s, err %v", cfg.Config.Namespace, cfg.Config.Name, clusterId, err)
+			IngressLog.Errorf("Apply canary ingress %s/%s fail in cluster %s, err %v", cfg.Config.Namespace,
+				cfg.Config.Name, clusterId, err)
 		}
 	}
 }
 
-func (m *IngressConfig) constructHttp2RpcEnvoyFilter(http2rpcConfig *annotations.Http2RpcConfig, route *common.WrapperHTTPRoute, namespace string, initHttp2RpcGlobalConfig bool) (*config.Config, error) {
+func (m *IngressConfig) constructHttp2RpcEnvoyFilter(http2rpcConfig *annotations.Http2RpcConfig,
+	route *common.WrapperHTTPRoute, namespace string, initHttp2RpcGlobalConfig bool) (*config.Config, error) {
 	mappings := m.http2rpcs
 	IngressLog.Infof("Found http2rpc mappings %v", mappings)
 	if _, exist := mappings[http2rpcConfig.Name]; !exist {

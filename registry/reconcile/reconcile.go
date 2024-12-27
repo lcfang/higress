@@ -94,8 +94,11 @@ func (r *Reconciler) Reconcile(mcpbridge *v1.McpBridge) error {
 	log.Infof("ReconcileRegistries, toBeCreated: %d, toBeUpdated: %d, toBeDeleted: %d",
 		len(toBeCreated), len(toBeUpdated), len(toBeDeleted))
 	for k := range toBeDeleted {
+		log.Infof("ReconcileRegistries  %s toBeDeleted", k)
 		r.watchers[k].Stop()
+		log.Infof("ReconcileRegistries  %s toBeDeleted,delete registries", k)
 		delete(r.registries, k)
+		log.Infof("ReconcileRegistries  %s toBeDeleted,delete watchers", k)
 		delete(r.watchers, k)
 	}
 	for k, v := range toBeUpdated {
@@ -144,7 +147,8 @@ func (r *Reconciler) Reconcile(mcpbridge *v1.McpBridge) error {
 	return nil
 }
 
-func (r *Reconciler) generateWatcherFromRegistryConfig(registry *apiv1.RegistryConfig, wg *sync.WaitGroup) (Watcher, error) {
+func (r *Reconciler) generateWatcherFromRegistryConfig(registry *apiv1.RegistryConfig, wg *sync.WaitGroup) (Watcher,
+	error) {
 	var watcher Watcher
 	var err error
 
@@ -253,9 +257,11 @@ func (r *Reconciler) getAuthOption(registry *apiv1.RegistryConfig) (AuthOption, 
 		return authOption, nil
 	}
 
-	authSecret, err := r.client.Kube().CoreV1().Secrets(r.namespace).Get(context.Background(), authSecretName, metav1.GetOptions{})
+	authSecret, err := r.client.Kube().CoreV1().Secrets(r.namespace).Get(context.Background(), authSecretName,
+		metav1.GetOptions{})
 	if err != nil {
-		return authOption, errors.New(fmt.Sprintf("get auth secret %s in namespace %s error:%v", authSecretName, r.namespace, err))
+		return authOption, errors.New(fmt.Sprintf("get auth secret %s in namespace %s error:%v", authSecretName,
+			r.namespace, err))
 	}
 
 	if nacosUsername, ok := authSecret.Data[AuthNacosUsernameKey]; ok {
