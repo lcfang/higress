@@ -185,6 +185,18 @@ func (c *eurekaHttpClient) request(urlPath string) ([]byte, int, error) {
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
+	// ICBC auth-headers add
+	req.Header.Set(RequestAppHeaderKey, RequestAppHeaderValue)
+	req.Header.Set(RequestVersionHeaderKey, RequestVersionHeaderValue)
+	timeStamp := time.Now().String()
+	req.Header.Set(RequestTimestampHeaderKey, timeStamp)
+	tokenBeforeEncrypt := RequestAppHeaderValue + "@" + RequestVersionHeaderValue + "@" + timeStamp
+	token, err := Encrypt(tokenBeforeEncrypt, RequestAppHeaderValue, timeStamp)
+	if err != nil {
+		log.Errorf("Failed to encrypt for eureka http token, error: %v", err.Error())
+		return nil, -1, err
+	}
+	req.Header.Set(RequestTokenHeaderKey, token)
 
 	retryConfig := []retry.Option{
 		retry.Attempts(uint(c.Retries)),
