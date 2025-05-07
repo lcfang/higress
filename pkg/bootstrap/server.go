@@ -340,14 +340,22 @@ func (s *Server) WaitUntilCompletion() {
 
 func (s *Server) initXdsServer() error {
 	log.Info("init xds server")
-	s.xdsServer = xds.NewDiscoveryServer(s.environment, higressconfig.PodName, cluster.ID(higressconfig.PodNamespace), s.RegistryOptions.KubeOptions.ClusterAliases)
-	generatorOptions := mcp.GeneratorOptions{KeepConfigLabels: s.XdsOptions.KeepConfigLabels, KeepConfigAnnotations: s.XdsOptions.KeepConfigAnnotations}
-	s.xdsServer.Generators[gvk.WasmPlugin.String()] = &mcp.WasmPluginGenerator{Environment: s.environment, Server: s.xdsServer, GeneratorOptions: generatorOptions}
-	s.xdsServer.Generators[gvk.DestinationRule.String()] = &mcp.DestinationRuleGenerator{Environment: s.environment, Server: s.xdsServer, GeneratorOptions: generatorOptions}
-	s.xdsServer.Generators[gvk.EnvoyFilter.String()] = &mcp.EnvoyFilterGenerator{Environment: s.environment, Server: s.xdsServer, GeneratorOptions: generatorOptions}
-	s.xdsServer.Generators[gvk.Gateway.String()] = &mcp.GatewayGenerator{Environment: s.environment, Server: s.xdsServer, GeneratorOptions: generatorOptions}
-	s.xdsServer.Generators[gvk.VirtualService.String()] = &mcp.VirtualServiceGenerator{Environment: s.environment, Server: s.xdsServer, GeneratorOptions: generatorOptions}
-	s.xdsServer.Generators[gvk.ServiceEntry.String()] = &mcp.ServiceEntryGenerator{Environment: s.environment, Server: s.xdsServer, GeneratorOptions: generatorOptions}
+	s.xdsServer = xds.NewDiscoveryServer(s.environment, higressconfig.PodName, cluster.ID(higressconfig.PodNamespace),
+		s.RegistryOptions.KubeOptions.ClusterAliases)
+	generatorOptions := mcp.GeneratorOptions{KeepConfigLabels: s.XdsOptions.KeepConfigLabels,
+		KeepConfigAnnotations: s.XdsOptions.KeepConfigAnnotations}
+	s.xdsServer.Generators[gvk.WasmPlugin.String()] = &mcp.WasmPluginGenerator{Environment: s.environment,
+		Server: s.xdsServer, GeneratorOptions: generatorOptions}
+	s.xdsServer.Generators[gvk.DestinationRule.String()] = &mcp.DestinationRuleGenerator{Environment: s.environment,
+		Server: s.xdsServer, GeneratorOptions: generatorOptions}
+	s.xdsServer.Generators[gvk.EnvoyFilter.String()] = &mcp.EnvoyFilterGenerator{Environment: s.environment,
+		Server: s.xdsServer, GeneratorOptions: generatorOptions}
+	s.xdsServer.Generators[gvk.Gateway.String()] = &mcp.GatewayGenerator{Environment: s.environment,
+		Server: s.xdsServer, GeneratorOptions: generatorOptions}
+	s.xdsServer.Generators[gvk.VirtualService.String()] = &mcp.VirtualServiceGenerator{Environment: s.environment,
+		Server: s.xdsServer, GeneratorOptions: generatorOptions}
+	s.xdsServer.Generators[gvk.ServiceEntry.String()] = &mcp.ServiceEntryGenerator{Environment: s.environment,
+		Server: s.xdsServer, GeneratorOptions: generatorOptions}
 	for _, schema := range collections.Pilot.All() {
 		gvk := schema.GroupVersionKind().String()
 		if _, ok := s.xdsServer.Generators[gvk]; !ok {
@@ -382,7 +390,8 @@ func (s *Server) initAuthenticators() error {
 		&authenticate.ClientCertAuthenticator{},
 	}
 	authenticators = append(authenticators,
-		kubeauth.NewKubeJWTAuthenticator(s.environment.Watcher, s.kubeClient.Kube(), s.RegistryOptions.KubeOptions.ClusterID, nil, features.JwtPolicy))
+		kubeauth.NewKubeJWTAuthenticator(s.environment.Watcher, s.kubeClient.Kube(),
+			s.RegistryOptions.KubeOptions.ClusterID, nil, features.JwtPolicy))
 	if features.XDSAuth {
 		s.xdsServer.Authenticators = authenticators
 	}
@@ -439,7 +448,13 @@ func (s *Server) initHttpServer() error {
 	s.xdsServer.AddDebugHandlers(s.httpMux, nil, true, nil)
 	s.httpMux.HandleFunc("/ready", s.readyHandler)
 	s.httpMux.HandleFunc("/registry/watcherStatus", s.registryWatcherStatusHandler)
+	s.httpMux.Handle("/f5/checkHealth", http.HandlerFunc(f5Check))
 	return nil
+}
+
+func f5Check(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("@the@health@is@good@"))
 }
 
 // readyHandler checks whether the http server is ready
@@ -522,7 +537,8 @@ func (s *Server) waitForCacheSync(stop <-chan struct{}) bool {
 func (s *Server) pushContextReady(expected int64) bool {
 	committed := s.xdsServer.CommittedUpdates.Load()
 	if committed < expected {
-		log.Debugf("Waiting for pushcontext to process inbound updates, inbound: %v, committed : %v", expected, committed)
+		log.Debugf("Waiting for pushcontext to process inbound updates, inbound: %v, committed : %v", expected,
+			committed)
 		return false
 	}
 	return true
