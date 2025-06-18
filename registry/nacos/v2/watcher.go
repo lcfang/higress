@@ -489,7 +489,8 @@ func (w *watcher) unsubscribe(groupName string, serviceName string) error {
 	return nil
 }
 
-func (w *watcher) getSubscribeCallback(groupName string, serviceName string) func(services []model.Instance, err error) {
+func (w *watcher) getSubscribeCallback(groupName string, serviceName string) func(services []model.Instance,
+	err error) {
 	suffix := strings.Join([]string{groupName, w.NacosNamespace, "nacos"}, common.DotSeparator)
 	suffix = strings.ReplaceAll(suffix, common.Underscore, common.Hyphen)
 	host := strings.Join([]string{serviceName, suffix}, common.DotSeparator)
@@ -528,7 +529,7 @@ func (w *watcher) generateServiceEntry(host string, services []model.Instance) *
 	portList := make([]*v1alpha3.ServicePort, 0)
 	endpoints := make([]*v1alpha3.WorkloadEntry, 0)
 	isDnsService := false
-
+	serviceEntriesCache := w.cache.GetAllServiceWrapper()
 	for _, service := range services {
 		protocol := common.HTTP
 		if service.Metadata != nil && service.Metadata["protocol"] != "" {
@@ -539,6 +540,7 @@ func (w *watcher) generateServiceEntry(host string, services []model.Instance) *
 			Number:   uint32(service.Port),
 			Protocol: protocol.String(),
 		}
+		//serviceEntry不存在时，即首次生成，使用第一个实例的端口；ServiceEntry已存在时，使用已有的端口;
 		if len(portList) == 0 {
 			portList = append(portList, port)
 		}
@@ -552,7 +554,12 @@ func (w *watcher) generateServiceEntry(host string, services []model.Instance) *
 		}
 		endpoints = append(endpoints, endpoint)
 	}
-
+	for _, s := range serviceEntriesCache {
+		if s.ServiceEntry.Hosts[0] == host {
+			portList[0].Number = s.ServiceEntry.Ports[0].Number
+			break
+		}
+	}
 	resolution := v1alpha3.ServiceEntry_STATIC
 	if isDnsService {
 		resolution = v1alpha3.ServiceEntry_DNS

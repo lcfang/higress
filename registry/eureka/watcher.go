@@ -199,7 +199,7 @@ func (w *watcher) subscribe(service *fargo.Application) error {
 		defer w.UpdateService()
 
 		if len(service.Instances) != 0 {
-			se, err := generateServiceEntry(service)
+			se, err := w.generateServiceEntry(service)
 			if err != nil {
 				return err
 			}
@@ -251,10 +251,10 @@ func convertMap(m map[string]interface{}) map[string]string {
 	return result
 }
 
-func generateServiceEntry(app *fargo.Application) (*v1alpha3.ServiceEntry, error) {
+func (w *watcher) generateServiceEntry(app *fargo.Application) (*v1alpha3.ServiceEntry, error) {
 	portList := make([]*v1alpha3.ServicePort, 0)
 	endpoints := make([]*v1alpha3.WorkloadEntry, 0)
-
+	serviceEntriesCache := w.cache.GetAllServiceWrapper()
 	for _, instance := range app.Instances {
 		protocol := common.HTTP
 		if val, _ := instance.Metadata.GetString("protocol"); val != "" {
@@ -277,7 +277,12 @@ func generateServiceEntry(app *fargo.Application) (*v1alpha3.ServiceEntry, error
 		}
 		endpoints = append(endpoints, &endpoint)
 	}
-
+	for _, s := range serviceEntriesCache {
+		if s.ServiceEntry.Hosts[0] == makeHost(app.Name) {
+			portList[0].Number = s.ServiceEntry.Ports[0].Number
+			break
+		}
+	}
 	se := &v1alpha3.ServiceEntry{
 		Hosts:      []string{makeHost(app.Name)},
 		Ports:      portList,
