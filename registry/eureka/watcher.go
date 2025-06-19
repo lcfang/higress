@@ -16,6 +16,8 @@ package eureka
 
 import (
 	"fmt"
+	v1 "github.com/alibaba/higress/client/pkg/listers/networking/v1"
+	"k8s.io/client-go/tools/cache"
 	"net"
 	"strconv"
 	"sync"
@@ -254,7 +256,36 @@ func convertMap(m map[string]interface{}) map[string]string {
 func (w *watcher) generateServiceEntry(app *fargo.Application) (*v1alpha3.ServiceEntry, error) {
 	portList := make([]*v1alpha3.ServicePort, 0)
 	endpoints := make([]*v1alpha3.WorkloadEntry, 0)
-	serviceEntriesCache := w.cache.GetAllServiceWrapper()
+	sePort := &v1alpha3.ServicePort{
+		Name:     string(common.HTTP),
+		Number:   uint32(80),
+		Protocol: string(common.HTTP),
+	}
+	var indexer cache.Indexer
+	mcpLister := v1.NewMcpBridgeLister(indexer)
+	mcpbridge, err := mcpLister.McpBridges("higress-system").Get("default")
+	if err != nil {
+		return nil, err
+	} else {
+		registers := mcpbridge.Spec.Registries
+		for _, register := range registers {
+			if register.Type == w.Type && register.Name == w.Name {
+				if register.Vport == nil {
+					return nil, fmt.Errorf("vport is lost witch must be configed")
+				} else {
+					vport := register.Vport
+					sePort.Number = vport.Default
+					for _, service := range vport.Service {
+						if service.Name == app.Name {
+							sePort.Number = service.Value
+							break
+						}
+					}
+				}
+				break
+			}
+		}
+	}
 	for _, instance := range app.Instances {
 		protocol := common.HTTP
 		if val, _ := instance.Metadata.GetString("protocol"); val != "" {
@@ -268,7 +299,8 @@ func (w *watcher) generateServiceEntry(app *fargo.Application) (*v1alpha3.Servic
 			Protocol: protocol.String(),
 		}
 		if len(portList) == 0 {
-			portList = append(portList, port)
+			sePort.Name = port.Name
+			sePort.Protocol = port.Protocol
 		}
 		endpoint := v1alpha3.WorkloadEntry{
 			Address: instance.IPAddr,
@@ -277,12 +309,7 @@ func (w *watcher) generateServiceEntry(app *fargo.Application) (*v1alpha3.Servic
 		}
 		endpoints = append(endpoints, &endpoint)
 	}
-	for _, s := range serviceEntriesCache {
-		if s.ServiceEntry.Hosts[0] == makeHost(app.Name) {
-			portList[0].Number = s.ServiceEntry.Ports[0].Number
-			break
-		}
-	}
+	portList = append(portList, sePort)
 	se := &v1alpha3.ServiceEntry{
 		Hosts:      []string{makeHost(app.Name)},
 		Ports:      portList,
