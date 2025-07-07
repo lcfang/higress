@@ -66,31 +66,36 @@ func (c *registryConfigCache) UpdateServiceWrapper(service string, data *memory.
 
 func (c *registryConfigCache) normalizeSePort(host string, data *memory.ServiceWrapper) {
 	mcpBridge := c.mcpBridgeProvider()
-	registers := mcpBridge.Spec.Registries
-	for _, register := range registers {
-		if register.Type == data.RegistryType && register.Name == data.RegistryName {
-			vport := register.Vport
-			if vport != nil {
-				if vport.Default >= 0 && vport.Default <= 65535 {
-					servicePortNum := vport.Default
-					for _, service := range vport.Services {
-						if strings.ToLower(service.Name) == strings.ToLower(host) {
-							if service.Value > 0 && service.Value <= 65535 {
-								servicePortNum = service.Value
-							}
-							break
-						}
-					}
-					if servicePortNum > 0 {
-						log.Infof("the vport of %s is : %d, will update", host, servicePortNum)
-						data.ServiceEntry.Ports[0].Number = servicePortNum
-					}
-				}
-			}
-			break
+	registries := mcpBridge.Spec.Registries
+	for _, registry := range registries {
+		if registry.Type != data.RegistryType || registry.Name != data.RegistryName {
+			continue
 		}
-
+		if vport, ok := c.getServiceVport(host, registry.Vport); ok {
+			log.Infof("the vport of %s is : %d, will update", host, vport)
+			data.ServiceEntry.Ports[0].Number = vport
+		}
+		break
 	}
+}
+
+func (c *registryConfigCache) getServiceVport(host string, vport *apiv1.RegistryConfig_VPort) (uint32, bool) {
+	if vport == nil {
+		return 0, false
+	}
+	for _, service := range vport.Services {
+		if strings.EqualFold(service.Name, host) && isValidPort(service.Value) {
+			return service.Value, true
+		}
+	}
+	if isValidPort(vport.Default) {
+		return vport.Default, true
+	}
+	return 0, false
+}
+
+func isValidPort(port uint32) bool {
+	return port > 0 && port <= 65535
 }
 
 type Reconciler struct {
