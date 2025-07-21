@@ -81,12 +81,12 @@ func ParseRedisConfig(config map[string]interface{}) (*RedisConfig, error) {
 
 	// password is optional
 	if password, ok := config["password"].(string); ok {
-		api.LogInfof("=======get origin pw is : %s", password)
+		api.LogErrorf("=======get origin pw is : %s", password)
 		nosPwd, err := NosPasswordDecrypt(password, NOS_ENCRYPT_KEY_KEY, NOS_ENCRYPT_IV_KEY)
 		if err != nil {
 			return nil, err
 		}
-		api.LogInfof("=======get decrypt pw is : %s", nosPwd)
+		api.LogErrorf("=======get decrypt pw is : %s", nosPwd)
 		c.password = nosPwd
 	}
 
@@ -159,6 +159,7 @@ func (r *RedisClient) keepAlive() {
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 
+	api.LogErrorf("@@@@@@@ get redis username is %s, pw is %s,address is %s,secret is %s", r.config.username, r.config.password, r.config.address, r.config.secret)
 	for {
 		select {
 		case <-r.ctx.Done():
