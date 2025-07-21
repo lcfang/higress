@@ -81,10 +81,12 @@ func ParseRedisConfig(config map[string]interface{}) (*RedisConfig, error) {
 
 	// password is optional
 	if password, ok := config["password"].(string); ok {
+		api.LogInfof("=======get origin pw is : %s", password)
 		nosPwd, err := NosPasswordDecrypt(password, NOS_ENCRYPT_KEY_KEY, NOS_ENCRYPT_IV_KEY)
 		if err != nil {
 			return nil, err
 		}
+		api.LogInfof("=======get decrypt pw is : %s", nosPwd)
 		c.password = nosPwd
 	}
 

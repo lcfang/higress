@@ -230,6 +230,8 @@ func deepCopyMcpServer(mcp *McpServer) (*McpServer, error) {
 			Password: nosPwd,
 			DB:       mcp.Redis.DB,
 		}
+		IngressLog.Infof("####redis original pw is %s", nosPwd)
+		IngressLog.Infof("####redis decrypt pw is %s", nosPwd)
 	}
 	if mcp.Ratelimit != nil {
 		newMcp.Ratelimit = &MCPRatelimitConfig{
@@ -506,6 +508,8 @@ func (m *McpServerController) constructMcpSessionStruct(mcp *McpServer) string {
 		if err != nil {
 			return fmt.Sprintf("decrypt nos password fialed with err: %v", err)
 		}
+		IngressLog.Infof("$$$$$redis original pw is %s", nosPwd)
+		IngressLog.Infof("$$$$$redis decrypt pw is %s", nosPwd)
 		redisConfig = fmt.Sprintf(`{
 							"address": "%s",
 							"username": "%s",
