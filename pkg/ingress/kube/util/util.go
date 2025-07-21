@@ -108,8 +108,10 @@ func CreateServiceFQDN(namespace, name string) string {
 }
 
 func BuildPatchStruct(config string) *_struct.Struct {
+	IngressLog.Errorf("********get config before struct is :%v", config)
 	val := &_struct.Struct{}
 	err := jsonpb.Unmarshal(strings.NewReader(config), val)
+	IngressLog.Errorf("********get config after struct is :%v", *val)
 	if err != nil {
 		IngressLog.Errorf("build patch struct failed, err:%v", err)
 	}

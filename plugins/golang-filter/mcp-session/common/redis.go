@@ -159,15 +159,16 @@ func (r *RedisClient) keepAlive() {
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 
-	api.LogErrorf("@@@@@@@ get redis username is %s, pw is %s,address is %s,secret is %s", r.config.username, r.config.password, r.config.address, r.config.secret)
 	for {
 		select {
 		case <-r.ctx.Done():
 			return
 		case <-ticker.C:
 			if err := r.checkConnection(); err != nil {
+				api.LogErrorf("@@@@@@@ get redis username is %s, pw is %s,address is %s,secret is %s", r.config.username, r.config.password, r.config.address, r.config.secret)
 				api.LogErrorf("Redis connection check failed: %v", err)
 				if err := r.reconnect(); err != nil {
+					api.LogErrorf("@@@@@@@ get redis username is %s, pw is %s,address is %s,secret is %s", r.config.username, r.config.password, r.config.address, r.config.secret)
 					api.LogErrorf("Failed to reconnect to Redis: %v", err)
 				}
 			}
