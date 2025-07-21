@@ -2,11 +2,20 @@ package common
 
 import (
 	"context"
+	"crypto/aes"
+	"crypto/cipher"
+	"encoding/base64"
 	"fmt"
 	"time"
 
 	"github.com/envoyproxy/envoy/contrib/golang/common/go/api"
 	"github.com/go-redis/redis/v8"
+	"github.com/zenazn/pkcs7pad"
+)
+
+const (
+	NOS_ENCRYPT_KEY_KEY = "icbcnodeencodese"
+	NOS_ENCRYPT_IV_KEY  = "icbcnodeencodeve"
 )
 
 type RedisConfig struct {
@@ -15,6 +24,43 @@ type RedisConfig struct {
 	password string
 	db       int
 	secret   string // Encryption key
+}
+
+func NosPasswordDecrypt(needDecryptStr string, key string, iv string) (string, error) {
+	keyBytes := fillBytes16([]byte(key))
+	ivBytes := fillBytes16([]byte(iv))
+
+	block, err := aes.NewCipher(keyBytes)
+	if err != nil {
+		return "", err
+	}
+
+	// Base64 解码
+	ciphertext, err := base64.StdEncoding.DecodeString(needDecryptStr)
+	if err != nil {
+		return "", err
+	}
+
+	// 使用 CBC 模式解密
+	mode := cipher.NewCBCDecrypter(block, ivBytes)
+
+	plaintext := make([]byte, len(ciphertext))
+	mode.CryptBlocks(plaintext, ciphertext)
+
+	// 去除 PKCS7 填充
+	plaintext, err = pkcs7pad.Unpad(plaintext)
+	if err != nil {
+		return "", err
+	}
+
+	return string(plaintext), nil
+}
+
+// fillBytes16 函数，确保 keyBytes 长度为 16 字节
+func fillBytes16(keyBytes []byte) []byte {
+	newKeyBytes := make([]byte, 16)
+	copy(newKeyBytes, keyBytes)
+	return newKeyBytes[:16]
 }
 
 // ParseRedisConfig parses Redis configuration from a map
@@ -35,7 +81,11 @@ func ParseRedisConfig(config map[string]interface{}) (*RedisConfig, error) {
 
 	// password is optional
 	if password, ok := config["password"].(string); ok {
-		c.password = password
+		nosPwd, err := NosPasswordDecrypt(password, NOS_ENCRYPT_KEY_KEY, NOS_ENCRYPT_IV_KEY)
+		if err != nil {
+			return nil, err
+		}
+		c.password = nosPwd
 	}
 
 	// db is optional, default to 0

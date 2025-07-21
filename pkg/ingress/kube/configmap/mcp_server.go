@@ -15,6 +15,9 @@
 package configmap
 
 import (
+	"crypto/aes"
+	"crypto/cipher"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -29,6 +32,7 @@ import (
 	"github.com/alibaba/higress/pkg/ingress/kube/mcpserver"
 	"github.com/alibaba/higress/pkg/ingress/kube/util"
 	. "github.com/alibaba/higress/pkg/ingress/log"
+	"github.com/zenazn/pkcs7pad"
 )
 
 // RedisConfig defines the configuration for Redis connection
@@ -112,6 +116,8 @@ func NewDefaultMcpServer() *McpServer {
 
 const (
 	higressMcpServerEnvoyFilterName = "higress-config-mcp-server"
+	NOS_ENCRYPT_KEY_KEY             = "icbcnodeencodese"
+	NOS_ENCRYPT_IV_KEY              = "icbcnodeencodeve"
 )
 
 func validMcpServer(m *McpServer) error {
@@ -173,15 +179,55 @@ func compareMcpServer(old *McpServer, new *McpServer) (Result, error) {
 	return ResultNothing, nil
 }
 
+func NosPasswordDecrypt(needDecryptStr string, key string, iv string) (string, error) {
+	keyBytes := fillBytes16([]byte(key))
+	ivBytes := fillBytes16([]byte(iv))
+
+	block, err := aes.NewCipher(keyBytes)
+	if err != nil {
+		return "", err
+	}
+
+	// Base64 解码
+	ciphertext, err := base64.StdEncoding.DecodeString(needDecryptStr)
+	if err != nil {
+		return "", err
+	}
+
+	// 使用 CBC 模式解密
+	mode := cipher.NewCBCDecrypter(block, ivBytes)
+
+	plaintext := make([]byte, len(ciphertext))
+	mode.CryptBlocks(plaintext, ciphertext)
+
+	// 去除 PKCS7 填充
+	plaintext, err = pkcs7pad.Unpad(plaintext)
+	if err != nil {
+		return "", err
+	}
+
+	return string(plaintext), nil
+}
+
+// fillBytes16 函数，确保 keyBytes 长度为 16 字节
+func fillBytes16(keyBytes []byte) []byte {
+	newKeyBytes := make([]byte, 16)
+	copy(newKeyBytes, keyBytes)
+	return newKeyBytes[:16]
+}
+
 func deepCopyMcpServer(mcp *McpServer) (*McpServer, error) {
 	newMcp := NewDefaultMcpServer()
 	newMcp.Enable = mcp.Enable
-
 	if mcp.Redis != nil {
+		nosPwd, err := NosPasswordDecrypt(mcp.Redis.Password, NOS_ENCRYPT_KEY_KEY, NOS_ENCRYPT_IV_KEY)
+		if err != nil {
+			return nil, err
+		}
 		newMcp.Redis = &RedisConfig{
 			Address:  mcp.Redis.Address,
 			Username: mcp.Redis.Username,
-			Password: mcp.Redis.Password,
+			Password: nosPwd,
 			DB:       mcp.Redis.DB,
 		}
 	}
