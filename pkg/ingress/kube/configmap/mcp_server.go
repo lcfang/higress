@@ -504,18 +504,13 @@ func (m *McpServerController) constructMcpSessionStruct(mcp *McpServer) string {
 	// Build redis configuration
 	redisConfig := "null"
 	if mcp.Redis != nil {
-		nosPwd, err := NosPasswordDecrypt(mcp.Redis.Password, NOS_ENCRYPT_KEY_KEY, NOS_ENCRYPT_IV_KEY)
-		if err != nil {
-			return fmt.Sprintf("decrypt nos password fialed with err: %v", err)
-		}
-		IngressLog.Infof("$$$$$redis original pw is %s", mcp.Redis.Password)
-		IngressLog.Infof("$$$$$redis decrypt pw is %s", nosPwd)
+		IngressLog.Infof("$$$$$redis pw is %s", mcp.Redis.Password)
 		redisConfig = fmt.Sprintf(`{
 							"address": "%s",
 							"username": "%s",
 							"password": "%s",
 							"db": %d
-						}`, mcp.Redis.Address, mcp.Redis.Username, nosPwd, mcp.Redis.DB)
+						}`, mcp.Redis.Address, mcp.Redis.Username, mcp.Redis.Password, mcp.Redis.DB)
 	}
 
 	// Build rate limit configuration
