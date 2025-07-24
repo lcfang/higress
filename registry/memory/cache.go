@@ -17,7 +17,6 @@ package memory
 import (
 	"encoding/json"
 	apiv1 "github.com/alibaba/higress/api/networking/v1"
-	v1 "github.com/alibaba/higress/client/pkg/apis/networking/v1"
 	"sort"
 	"strconv"
 	"strings"
@@ -63,7 +62,6 @@ func NewCache() Cache {
 		toBeDeleted:   make([]*ServiceWrapper, 0),
 		ip2services:   make(map[string]map[string]bool),
 		deferedDelete: make(map[string]struct{}),
-		mcpBridge:     &v1.McpBridge{},
 	}
 }
 
@@ -75,7 +73,6 @@ type store struct {
 	toBeDeleted   []*ServiceWrapper
 	ip2services   map[string]map[string]bool
 	deferedDelete map[string]struct{}
-	mcpBridge     *v1.McpBridge
 }
 
 func (s *store) GetAllConfigs(kind config.GroupVersionKind) map[string]*config.Config {
@@ -216,17 +213,36 @@ func (s *store) UpdateServiceWrapper(service string, data *ServiceWrapper) {
 }
 
 func (s *store) normalizeSePort(host string, data *ServiceWrapper) {
-	mcpBridge := s.mcpBridge
-	registries := mcpBridge.Spec.Registries
-	for _, registry := range registries {
-		if registry.Type != data.RegistryType || registry.Name != data.RegistryName {
-			continue
+	// 获取McpBridge资源
+	mcpBridgeGVK := config.GroupVersionKind{
+		Group:   "networking.higress.io",
+		Version: "v1",
+		Kind:    "McpBridge",
+	}
+
+	mcpBridgeConfigs := s.GetAllConfigs(mcpBridgeGVK)
+
+	// 获取default McpBridge配置
+	for name, mcpBridgeConfig := range mcpBridgeConfigs {
+		if name == "default" {
+			log.Infof("=====mcp bridge config: %v", mcpBridgeConfig)
+
+			// 获取McpBridge spec
+			mcpBridgeSpec := mcpBridgeConfig.Spec.(*apiv1.McpBridge)
+
+			// 处理registries
+			registries := mcpBridgeSpec.Registries
+			for _, registry := range registries {
+				if registry.Type != data.RegistryType || registry.Name != data.RegistryName {
+					continue
+				}
+				if vport, ok := getServiceVport(host, registry.Vport); ok {
+					log.Infof("the vport of %s is : %d, will update", host, vport)
+					data.ServiceEntry.Ports[0].Number = vport
+				}
+				break
+			}
 		}
-		if vport, ok := getServiceVport(host, registry.Vport); ok {
-			log.Infof("the vport of %s is : %d, will update", host, vport)
-			data.ServiceEntry.Ports[0].Number = vport
-		}
-		break
 	}
 }
 
@@ -428,3 +444,5 @@ func (s *store) RemoveEndpointByIp(ip string) {
 		}
 	}
 }
+
+
