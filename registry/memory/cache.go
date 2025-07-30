@@ -200,8 +200,12 @@ func (s *store) UpdateServiceWrapper(service string, data *ServiceWrapper) {
 
 	log.Infof("=====mcp service entry update, name:%s, data:%v", service, data)
 	if data != nil && data.ServiceEntry != nil {
+		log.Infof("======will normalizeSePort,data.RegistryName is %s,data.ServiceEntry.Hosts is %v", data.RegistryName, data.ServiceEntry.Hosts)
 		s.normalizeSePort(service, data)
+	} else {
+		log.Infof("=======maybe data.ServiceEntry is nil")
 	}
+	log.Infof("=======after normalizeSePort")
 	s.toBeUpdated = append(s.toBeUpdated, data)
 	s.sew[service] = data
 	// service is updated, should not be deleted
