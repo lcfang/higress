@@ -250,8 +250,9 @@ func (r *Reconciler) generateWatcherFromRegistryConfig(registry *apiv1.RegistryC
 			wg.Done()
 			if ready {
 				log.Infof("Registry Watcher is ready, type:%s, name:%s", registry.Type, registry.Name)
+			} else {
+				log.Infof("=======Registry Watcher is not ready, type:%s, name:%s", registry.Type, registry.Name)
 			}
-			log.Infof("=======Registry Watcher is not ready, type:%s, name:%s", registry.Type, registry.Name)
 		})
 	})
 	watcher.AppendServiceUpdateHandler(r.serviceUpdate)

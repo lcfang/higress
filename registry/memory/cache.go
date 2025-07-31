@@ -202,13 +202,13 @@ func (s *store) UpdateServiceWrapper(service string, data *ServiceWrapper) {
 	}
 
 	log.Infof("=====mcp service entry update, name:%s, data:%v", service, data)
-	/*if data != nil && data.ServiceEntry != nil {
+	if data != nil && data.ServiceEntry != nil {
 		log.Infof("======will normalizeSePort,data.RegistryName is %s,data.ServiceEntry.Hosts is %v", data.RegistryName, data.ServiceEntry.Hosts)
 		s.normalizeSePort(service, data)
 	} else {
 		log.Infof("=======maybe data.ServiceEntry is nil")
 	}
-	log.Infof("=======after normalizeSePort")*/
+	log.Infof("=======after normalizeSePort")
 	s.toBeUpdated = append(s.toBeUpdated, data)
 	s.sew[service] = data
 	// service is updated, should not be deleted
@@ -227,24 +227,33 @@ func (s *store) normalizeSePort(host string, data *ServiceWrapper) {
 			log.Infof("======normalizeSePort===data.ServiceEntry.Ports is %v", data.ServiceEntry.Ports)
 		}
 	}
-	crdconfigs := s.GetAllConfigs(gvk.CustomResourceDefinition)
-	if crdconfigs != nil {
-		log.Infof("======normalizeSePort====crdconfigs is: %v", crdconfigs)
-		for keyName, crdconfig := range crdconfigs {
-			log.Infof("======normalizeSePort====crdconfig keyName is: %s,crdconfig is %v", keyName, crdconfig)
+
+	// 使用非阻塞方式获取配置，避免在系统启动时阻塞watcher初始化
+	done := make(chan struct{})
+	var mcpBridgeConfigs map[string]*config.Config
+
+	go func() {
+		// 获取McpBridge资源
+		mcpBridgeGVK := config.GroupVersionKind{
+			Group:   "networking.higress.io",
+			Version: "v1",
+			Kind:    "McpBridge",
 		}
+		log.Infof("=====mcpBridgeGVK is: %v", mcpBridgeGVK.String())
+		mcpBridgeConfigs = s.GetAllConfigs(mcpBridgeGVK)
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		// 继续处理
+	case <-time.After(5 * time.Second): // 5秒超时
+		log.Warnf("GetAllConfigs timeout for McpBridge, skip normalizeSePort")
+		return
 	}
-	// 获取McpBridge资源
-	mcpBridgeGVK := config.GroupVersionKind{
-		Group:   "networking.higress.io",
-		Version: "v1",
-		Kind:    "McpBridge",
-	}
-	log.Infof("=====mcpBridgeGVK is: %v", mcpBridgeGVK.String())
-	mcpBridgeConfigs := s.GetAllConfigs(mcpBridgeGVK)
+
 	if mcpBridgeConfigs == nil {
 		log.Errorf("====*******====can't get mcpBridgeConfigs")
-		log.Infof("=====CustomResourceDefinition is: %v", s.GetAllConfigs(gvk.CustomResourceDefinition))
 		return
 	}
 
@@ -471,5 +480,7 @@ func (s *store) RemoveEndpointByIp(ip string) {
 		}
 	}
 }
+
+
 
 
