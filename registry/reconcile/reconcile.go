@@ -70,6 +70,7 @@ func (r *Reconciler) Reconcile(mcpbridge *v1.McpBridge) error {
 	newRegistries := make(map[string]*apiv1.RegistryConfig)
 	if mcpbridge != nil {
 		for _, registry := range mcpbridge.Spec.Registries {
+			log.Infof("=========**==ReconcileRegistries, registry: %s", registry)
 			newRegistries[path.Join(registry.Type, registry.Name)] = registry
 		}
 	}
@@ -94,7 +95,7 @@ func (r *Reconciler) Reconcile(mcpbridge *v1.McpBridge) error {
 		}
 	}
 	errHappened := false
-	log.Infof("ReconcileRegistries, toBeCreated: %d, toBeUpdated: %d, toBeDeleted: %d",
+	log.Infof("====***===ReconcileRegistries, toBeCreated: %d, toBeUpdated: %d, toBeDeleted: %d",
 		len(toBeCreated), len(toBeUpdated), len(toBeDeleted))
 	for k := range toBeDeleted {
 		r.watchers[k].Stop()
@@ -102,13 +103,14 @@ func (r *Reconciler) Reconcile(mcpbridge *v1.McpBridge) error {
 		delete(r.watchers, k)
 	}
 	for k, v := range toBeUpdated {
+		log.Infof("====***===toBeUpdated,k=%v,v=%v", k, v)
 		r.watchers[k].Stop()
 		delete(r.registries, k)
 		delete(r.watchers, k)
 		watcher, err := r.generateWatcherFromRegistryConfig(v, &wg)
 		if err != nil {
 			errHappened = true
-			log.Errorf("ReconcileRegistries failed, err:%v", err)
+			log.Errorf("===ReconcileRegistries update failed, err:%v", err)
 			continue
 		}
 
@@ -153,9 +155,11 @@ func (r *Reconciler) generateWatcherFromRegistryConfig(registry *apiv1.RegistryC
 
 	authOption, err := r.getAuthOption(registry)
 	if err != nil {
+		log.Infof("=====generateWatcherFromRegistryConfig  getAuthOption for registry: %v failed, err:%v", registry, err)
 		return nil, err
 	}
 
+	log.Infof("=====generateWatcherFromRegistryConfig, registry.Type is : %s", registry.Type)
 	switch registry.Type {
 	case string(Nacos):
 		watcher, err = nacos.NewWatcher(

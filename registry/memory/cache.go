@@ -78,12 +78,13 @@ type store struct {
 func (s *store) GetAllConfigs(kind config.GroupVersionKind) map[string]*config.Config {
 	s.mux.Lock()
 	defer s.mux.Unlock()
+	log.Infof("=============will get cfgs for kind: %s", kind.String())
 	cfgs, exist := s.configs[kind.String()]
 	if !exist {
 		log.Infof("======There is no config kind %s exist", kind.String())
 		return map[string]*config.Config{}
 	}
-	log.Infof("======get cfgs: %v", cfgs)
+	log.Infof("======get cfgs: %v success!!!!", cfgs)
 	if kind == gvk.WasmPlugin {
 		pluginConfig := &registry.WasmPluginConfig{}
 		var ns string
@@ -221,9 +222,9 @@ func (s *store) UpdateServiceWrapper(service string, data *ServiceWrapper) {
 func (s *store) normalizeSePort(host string, data *ServiceWrapper) {
 	log.Infof("=====will normalizeSePort for %s", host)
 	if data != nil {
-		log.Infof("======data.RegistryName is %s,data.RegistryType is %s,data.ServiceName is %s", data.RegistryName, data.RegistryType, data.ServiceName)
+		log.Infof("======**&**data.RegistryName is %s,data.RegistryType is %s,data.ServiceName is %s", data.RegistryName, data.RegistryType, data.ServiceName)
 		if data.ServiceEntry != nil && data.ServiceEntry.Ports != nil {
-			log.Infof("======data.ServiceEntry.Ports is %v", data.ServiceEntry.Ports)
+			log.Infof("======**&**data.ServiceEntry.Ports is %v", data.ServiceEntry.Ports)
 		}
 	}
 	// 获取McpBridge资源
@@ -232,7 +233,7 @@ func (s *store) normalizeSePort(host string, data *ServiceWrapper) {
 		Version: "v1",
 		Kind:    "McpBridge",
 	}
-
+	log.Infof("=====mcpBridgeGVK is: %v", mcpBridgeGVK.String())
 	mcpBridgeConfigs := s.GetAllConfigs(mcpBridgeGVK)
 	if mcpBridgeConfigs == nil {
 		log.Errorf("====*******====can't get mcpBridgeConfigs")
@@ -242,6 +243,7 @@ func (s *store) normalizeSePort(host string, data *ServiceWrapper) {
 
 	// 获取default McpBridge配置
 	for name, mcpBridgeConfig := range mcpBridgeConfigs {
+		log.Infof("=======================================")
 		if name == "default" {
 			log.Infof("=====mcp bridge config is: %v", mcpBridgeConfig)
 

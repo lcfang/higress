@@ -1163,6 +1163,7 @@ func (m *IngressConfig) DeleteWasmPlugin(clusterNamespacedName util.ClusterNames
 
 func (m *IngressConfig) AddOrUpdateMcpBridge(clusterNamespacedName util.ClusterNamespacedName) {
 	// TODO: get resource name from config
+	log.Infof("==================================AddOrUpdateMcpBridge")
 	if clusterNamespacedName.Name != DefaultMcpbridgeName || clusterNamespacedName.Namespace != m.namespace {
 		return
 	}
@@ -1234,6 +1235,8 @@ func (m *IngressConfig) AddOrUpdateMcpBridge(clusterNamespacedName util.ClusterN
 		m.configmapMgr.RegisterMcpServerProvider(m.RegistryReconciler)
 	}
 	reconciler := m.RegistryReconciler
+	log..
+	Infof("=======***======AddOrUpdateMcpBridge for %v", mcpbridge)
 	err = reconciler.Reconcile(mcpbridge)
 	if err != nil {
 		IngressLog.Errorf("Mcpbridge reconcile failed, err:%v", err)
