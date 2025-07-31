@@ -119,10 +119,11 @@ func (r *Reconciler) Reconcile(mcpbridge *v1.McpBridge) error {
 		r.registries[k] = v
 	}
 	for k, v := range toBeCreated {
+		log.Infof("====***===toBeCreated,k=%v,v=%v", k, v)
 		watcher, err := r.generateWatcherFromRegistryConfig(v, &wg)
 		if err != nil {
 			errHappened = true
-			log.Errorf("ReconcileRegistries failed, err:%v", err)
+			log.Errorf("=====ReconcileRegistries failed, err:%v", err)
 			continue
 		}
 
@@ -250,6 +251,7 @@ func (r *Reconciler) generateWatcherFromRegistryConfig(registry *apiv1.RegistryC
 			if ready {
 				log.Infof("Registry Watcher is ready, type:%s, name:%s", registry.Type, registry.Name)
 			}
+			log.Infof("=======Registry Watcher is not ready, type:%s, name:%s", registry.Type, registry.Name)
 		})
 	})
 	watcher.AppendServiceUpdateHandler(r.serviceUpdate)
