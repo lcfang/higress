@@ -80,8 +80,10 @@ func (s *store) GetAllConfigs(kind config.GroupVersionKind) map[string]*config.C
 	defer s.mux.Unlock()
 	cfgs, exist := s.configs[kind.String()]
 	if !exist {
+		log.Infof("======There is no config kind %s exist", kind.String())
 		return map[string]*config.Config{}
 	}
+	log.Infof("======get cfgs: %v", cfgs)
 	if kind == gvk.WasmPlugin {
 		pluginConfig := &registry.WasmPluginConfig{}
 		var ns string
@@ -217,6 +219,13 @@ func (s *store) UpdateServiceWrapper(service string, data *ServiceWrapper) {
 }
 
 func (s *store) normalizeSePort(host string, data *ServiceWrapper) {
+	log.Infof("=====will normalizeSePort for %s", host)
+	if data != nil {
+		log.Infof("======data.RegistryName is %s,data.RegistryType is %s,data.ServiceName is %s", data.RegistryName, data.RegistryType, data.ServiceName)
+		if data.ServiceEntry != nil && data.ServiceEntry.Ports != nil {
+			log.Infof("======data.ServiceEntry.Ports is %v", data.ServiceEntry.Ports)
+		}
+	}
 	// 获取McpBridge资源
 	mcpBridgeGVK := config.GroupVersionKind{
 		Group:   "networking.higress.io",
