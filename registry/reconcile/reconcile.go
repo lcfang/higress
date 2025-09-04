@@ -201,6 +201,7 @@ func (r *Reconciler) generateWatcherFromRegistryConfig(registry *apiv1.RegistryC
 	case string(Nacos):
 		watcher, err = nacos.NewWatcher(
 			r.Cache,
+			r.namespace,
 			nacos.WithType(registry.Type),
 			nacos.WithName(registry.Name),
 			nacos.WithDomain(registry.Domain),
@@ -210,10 +211,12 @@ func (r *Reconciler) generateWatcherFromRegistryConfig(registry *apiv1.RegistryC
 			nacos.WithNacosGroups(registry.NacosGroups),
 			nacos.WithNacosRefreshInterval(registry.NacosRefreshInterval),
 			nacos.WithAuthOption(authOption),
+			nacos.WithMcpBridgeLister(r.mcpbridgeLister),
 		)
 	case string(Nacos2), string(Nacos3):
 		watcher, err = nacosv2.NewWatcher(
 			r.Cache,
+			r.namespace,
 			nacosv2.WithType(registry.Type),
 			nacosv2.WithName(registry.Name),
 			nacosv2.WithNacosAddressServer(registry.NacosAddressServer),
@@ -231,6 +234,7 @@ func (r *Reconciler) generateWatcherFromRegistryConfig(registry *apiv1.RegistryC
 			nacosv2.WithClusterId(r.clusterId),
 			nacosv2.WithNamespace(r.namespace),
 			nacosv2.WithAuthOption(authOption),
+			nacosv2.WithMcpBridgeLister(r.mcpbridgeLister),
 		)
 	case string(Zookeeper):
 		watcher, err = zookeeper.NewWatcher(
