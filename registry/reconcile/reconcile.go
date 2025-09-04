@@ -28,6 +28,7 @@ import (
 
 	apiv1 "github.com/alibaba/higress/api/networking/v1"
 	v1 "github.com/alibaba/higress/client/pkg/apis/networking/v1"
+	listersv1 "github.com/alibaba/higress/client/pkg/listers/networking/v1"
 	higressmcpserver "github.com/alibaba/higress/pkg/ingress/kube/mcpserver"
 	"github.com/alibaba/higress/pkg/kube"
 	. "github.com/alibaba/higress/registry"
@@ -47,25 +48,29 @@ const (
 
 type Reconciler struct {
 	memory.Cache
-	registries    map[string]*apiv1.RegistryConfig
-	proxies       map[string]*apiv1.ProxyConfig
-	watchers      map[string]Watcher
-	serviceUpdate func()
-	client        kube.Client
-	namespace     string
-	clusterId     string
+	registries      map[string]*apiv1.RegistryConfig
+	proxies         map[string]*apiv1.ProxyConfig
+	watchers        map[string]Watcher
+	serviceUpdate   func()
+	client          kube.Client
+	namespace       string
+	clusterId       string
+	mcpbridgeLister listersv1.McpBridgeLister
 }
 
 func NewReconciler(serviceUpdate func(), client kube.Client, namespace, clusterId string) *Reconciler {
+	informerFactory := client.HigressInformer()
+	mcpbridgeLister := informerFactory.Networking().V1().McpBridges().Lister()
 	return &Reconciler{
-		Cache:         memory.NewCache(),
-		registries:    make(map[string]*apiv1.RegistryConfig),
-		proxies:       make(map[string]*apiv1.ProxyConfig),
-		watchers:      make(map[string]Watcher),
-		serviceUpdate: serviceUpdate,
-		client:        client,
-		namespace:     namespace,
-		clusterId:     clusterId,
+		Cache:           memory.NewCache(),
+		registries:      make(map[string]*apiv1.RegistryConfig),
+		proxies:         make(map[string]*apiv1.ProxyConfig),
+		watchers:        make(map[string]Watcher),
+		serviceUpdate:   serviceUpdate,
+		client:          client,
+		namespace:       namespace,
+		clusterId:       clusterId,
+		mcpbridgeLister: mcpbridgeLister,
 	}
 }
 
@@ -262,10 +267,12 @@ func (r *Reconciler) generateWatcherFromRegistryConfig(registry *apiv1.RegistryC
 	case string(Eureka):
 		watcher, err = eureka.NewWatcher(
 			r.Cache,
+			r.namespace,
 			eureka.WithName(registry.Name),
 			eureka.WithDomain(registry.Domain),
 			eureka.WithType(registry.Type),
 			eureka.WithPort(registry.Port),
+			eureka.WithMcpBridgeLister(r.mcpbridgeLister),
 		)
 	default:
 		return nil, errors.New("unsupported registry type:" + registry.Type)
