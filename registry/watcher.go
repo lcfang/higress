@@ -15,7 +15,10 @@
 package registry
 
 import (
+	apiv1 "github.com/alibaba/higress/api/networking/v1"
+	"istio.io/pkg/log"
 	"net"
+	"strings"
 	"time"
 )
 
@@ -88,4 +91,25 @@ func ProbeWatcherStatus(host string, port string) WatcherStatus {
 	}
 	_ = conn.Close()
 	return Healthy
+}
+
+func GetServiceVport(host string, vport *apiv1.RegistryConfig_VPort) (uint32, bool) {
+	if vport == nil {
+		log.Warnf("there is no vport exist, skip")
+		return 0, false
+	}
+	for _, service := range vport.Services {
+		if strings.EqualFold(service.Name, host) && isValidPort(service.Value) {
+			return service.Value, true
+		}
+	}
+	if isValidPort(vport.Default) {
+		log.Debugf("there is only vport default port exist, use default port %d", vport.Default)
+		return vport.Default, true
+	}
+	return 0, false
+}
+
+func isValidPort(port uint32) bool {
+	return port > 0 && port <= 65535
 }
