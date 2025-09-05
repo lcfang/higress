@@ -108,7 +108,7 @@ func GetServiceVport(host string, vport *apiv1.RegistryConfig_VPort) *v1alpha3.S
 		}
 	}
 	if isValidPort(vport.Default) {
-		log.Debugf("there is only default vport exist, use default vport %d", vport.Default)
+		log.Infof("there is only default vport exist, use default vport %d", vport.Default)
 		return &v1alpha3.ServicePort{
 			Number: vport.Default,
 		}

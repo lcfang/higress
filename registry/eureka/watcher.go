@@ -261,8 +261,15 @@ func convertMap(m map[string]interface{}) map[string]string {
 func (w *watcher) generateServiceEntry(app *fargo.Application) (*v1alpha3.ServiceEntry, error) {
 	portList := make([]*v1alpha3.ServicePort, 0)
 	endpoints := make([]*v1alpha3.WorkloadEntry, 0)
+	if w.Vport == nil {
+		log.Infof("====vport for registry %s is nil", w.RegistryConfig.Name)
+	} else {
+		log.Infof("====vport for registry %s is not nil,vport config is %v ", w.RegistryConfig.Name, w.Vport)
+	}
 	sePort := provider.GetServiceVport(makeHost(app.Name), w.Vport)
+	fmt.Printf("====vport for registry %s is %v ", w.RegistryConfig.Name, sePort)
 	for _, instance := range app.Instances {
+		log.Infof("=====portList before is %v", portList)
 		protocol := common.HTTP
 		if val, _ := instance.Metadata.GetString("protocol"); val != "" {
 			if protocol = common.ParseProtocol(val); protocol == common.Unsupported {
@@ -283,6 +290,7 @@ func (w *watcher) generateServiceEntry(app *fargo.Application) (*v1alpha3.Servic
 				portList = append(portList, port)
 			}
 		}
+		log.Infof("=====portList after is %v", portList)
 		endpoint := v1alpha3.WorkloadEntry{
 			Address: instance.IPAddr,
 			Ports:   map[string]uint32{port.Protocol: port.Number},
