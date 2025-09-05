@@ -332,11 +332,7 @@ func (w *watcher) getSubscribeCallback(groupName string, serviceName string) fun
 func (w *watcher) generateServiceEntry(host string, services []model.SubscribeService) *v1alpha3.ServiceEntry {
 	portList := make([]*v1alpha3.ServicePort, 0)
 	endpoints := make([]*v1alpha3.WorkloadEntry, 0)
-	sePort := &v1alpha3.ServicePort{}
-	if vport, ok := provider.GetServiceVport(host, w.Vport); ok {
-		sePort.Number = vport
-	}
-
+	sePort := provider.GetServiceVport(host, w.Vport)
 	for _, service := range services {
 		protocol := common.HTTP
 		if service.Metadata != nil && service.Metadata["protocol"] != "" {

@@ -261,10 +261,7 @@ func convertMap(m map[string]interface{}) map[string]string {
 func (w *watcher) generateServiceEntry(app *fargo.Application) (*v1alpha3.ServiceEntry, error) {
 	portList := make([]*v1alpha3.ServicePort, 0)
 	endpoints := make([]*v1alpha3.WorkloadEntry, 0)
-	sePort := &v1alpha3.ServicePort{}
-	if vport, ok := provider.GetServiceVport(makeHost(app.Name), w.Vport); ok {
-		sePort.Number = vport
-	}
+	sePort := provider.GetServiceVport(makeHost(app.Name), w.Vport)
 	for _, instance := range app.Instances {
 		protocol := common.HTTP
 		if val, _ := instance.Metadata.GetString("protocol"); val != "" {

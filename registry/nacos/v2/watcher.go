@@ -535,10 +535,7 @@ func (w *watcher) generateServiceEntry(host string, services []model.Instance) *
 	portList := make([]*v1alpha3.ServicePort, 0)
 	endpoints := make([]*v1alpha3.WorkloadEntry, 0)
 	isDnsService := false
-	sePort := &v1alpha3.ServicePort{}
-	if vport, ok := provider.GetServiceVport(host, w.Vport); ok {
-		sePort.Number = vport
-	}
+	sePort := provider.GetServiceVport(host, w.Vport)
 	for _, service := range services {
 		protocol := common.HTTP
 		if service.Metadata != nil && service.Metadata["protocol"] != "" {
