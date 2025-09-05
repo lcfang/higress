@@ -100,11 +100,12 @@ func GetServiceVport(host string, vport *apiv1.RegistryConfig_VPort) (uint32, bo
 	}
 	for _, service := range vport.Services {
 		if strings.EqualFold(service.Name, host) && isValidPort(service.Value) {
+			log.Infof("====there is service vport exist for %s, use service vport %d", host, service.Value)
 			return service.Value, true
 		}
 	}
 	if isValidPort(vport.Default) {
-		log.Debugf("there is only vport default port exist, use default port %d", vport.Default)
+		log.Infof("there is only default vport exist, use default vport %d", vport.Default)
 		return vport.Default, true
 	}
 	return 0, false
