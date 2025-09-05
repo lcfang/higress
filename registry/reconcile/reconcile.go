@@ -268,7 +268,6 @@ func (r *Reconciler) generateWatcherFromRegistryConfig(registry *apiv1.RegistryC
 			eureka.WithDomain(registry.Domain),
 			eureka.WithType(registry.Type),
 			eureka.WithPort(registry.Port),
-			eureka.WithVport(registry.Vport),
 		)
 	default:
 		return nil, errors.New("unsupported registry type:" + registry.Type)
