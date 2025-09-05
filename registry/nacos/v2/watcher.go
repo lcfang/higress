@@ -547,7 +547,6 @@ func (w *watcher) generateServiceEntry(host string, services []model.Instance) *
 			Protocol: protocol.String(),
 		}
 		if len(portList) == 0 {
-			portList = append(portList, port)
 			if sePort != nil {
 				sePort.Name = port.Name
 				sePort.Protocol = port.Protocol
