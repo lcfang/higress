@@ -109,6 +109,7 @@ func (e *eurekaHttpClient) GetDelta() (*Applications, error) {
 
 func (c *eurekaHttpClient) getApplications(path string) (*Applications, error) {
 	res, code, err := c.request(path)
+	log.Errorf("********[eureka]getApplications,the res is %v, the code is %v", res, code)
 	if err != nil {
 		log.Errorf("Failed to get applications, err: %v", err)
 		return nil, err

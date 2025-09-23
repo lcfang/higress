@@ -174,11 +174,22 @@ func (w *watcher) GetRegistryType() string {
 func (w *watcher) doFullRefresh() {
 	w.mutex.Lock()
 	defer w.mutex.Unlock()
+	log.Errorf("*******[eureka] will doFullRefresh for registry: %s", w.Name)
 
 	applications, err := w.eurekaClient.GetApplications()
+	log.Errorf("*******[eureka] get applications is %v", applications)
 	if err != nil {
 		log.Errorf("Failed to full fetch eureka services, error : %v", err)
 		return
+	}
+	if applications == nil {
+		for serviceName := range w.WatchingServices {
+			log.Errorf("*******[eureka] get applications is nil, will  unsubscribe service %s", serviceName)
+			if err = w.unsubscribe(serviceName); err != nil {
+				log.Errorf("Failed to unsubscribe service %v, error : %v", serviceName, err)
+				continue
+			}
+		}
 	}
 
 	fetchedServices := applications.Apps
