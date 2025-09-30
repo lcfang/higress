@@ -143,10 +143,13 @@ func (w *watcher) Stop() {
 	defer w.mutex.Unlock()
 
 	for serviceName := range w.WatchingServices {
+		log.Infof("=====will Unsubscribe service : %v in registry: %v", serviceName, w.Name)
 		if err := w.unsubscribe(serviceName); err != nil {
 			log.Errorf("Failed to unsubscribe service : %v", serviceName)
 			continue
 		}
+		log.Infof("===Unsubscribe service : %v in registry: %v successfully, will DeleteServiceWrapper", serviceName,
+			w.Name)
 		w.cache.DeleteServiceWrapper(makeHost(serviceName))
 	}
 	w.UpdateService()
@@ -174,6 +177,7 @@ func (w *watcher) doFullRefresh() {
 	fetchedServices := applications.Apps
 	for serviceName := range w.WatchingServices {
 		if _, ok := fetchedServices[serviceName]; !ok {
+			log.Infof("=====will Unsubscribe service : %v in registry: %v", serviceName, w.Name)
 			if err = w.unsubscribe(serviceName); err != nil {
 				log.Errorf("Failed to unsubscribe service %v, error : %v", serviceName, err)
 				continue
@@ -183,6 +187,7 @@ func (w *watcher) doFullRefresh() {
 
 	for serviceName := range fetchedServices {
 		if _, ok := w.WatchingServices[serviceName]; !ok {
+			log.Errorf("====service name in cache  is %s in registry: %v, will Subscribe service : %v", serviceName, w.Name, fetchedServices[serviceName])
 			if err = w.subscribe(fetchedServices[serviceName]); err != nil {
 				log.Errorf("Failed to subscribe service %v, error : %v", serviceName, err)
 				continue
@@ -196,8 +201,11 @@ func (w *watcher) subscribe(service *fargo.Application) error {
 		return fmt.Errorf("service is nil")
 	}
 	callback := func(service *fargo.Application) error {
+		if service == nil {
+			return fmt.Errorf("====service is nil in callback handler")
+		}
 		defer w.UpdateService()
-
+		log.Infof("====subscribe service, serviceName:%s, len(instances):%d", service.Name, len(service.Instances))
 		if len(service.Instances) != 0 {
 			se, err := generateServiceEntry(service)
 			if err != nil {
@@ -229,6 +237,7 @@ func (w *watcher) subscribe(service *fargo.Application) error {
 }
 
 func (w *watcher) unsubscribe(serviceName string) error {
+	log.Infof("=====will stop service : %v in registry: %v", serviceName, w.Name)
 	w.WatchingServices[serviceName].Stop()
 	delete(w.WatchingServices, serviceName)
 	w.UpdateService()

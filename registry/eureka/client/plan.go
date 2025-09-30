@@ -58,6 +58,7 @@ func NewPlan(client EurekaHttpClient, serviceName string, handler Handler) *Plan
 
 func (p *Plan) Stop() {
 	defer close(p.stop)
+	log.Infof("=====stop eureka plan")
 	p.stop <- struct{}{}
 }
 
@@ -70,6 +71,10 @@ func (p *Plan) watch(ch <-chan fargo.AppUpdate) {
 		case updateItem := <-ch:
 			if updateItem.Err != nil {
 				log.Errorf("get eureka application failed, error : %v", updateItem.Err)
+				continue
+			}
+			if updateItem.App == nil {
+				log.Info("=======get eureka application failed, app is nil")
 				continue
 			}
 			if err := p.handler(updateItem.App); err != nil {
