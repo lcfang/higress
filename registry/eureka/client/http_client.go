@@ -108,6 +108,7 @@ func (e *eurekaHttpClient) GetDelta() (*Applications, error) {
 }
 
 func (c *eurekaHttpClient) getApplications(path string) (*Applications, error) {
+	log.Errorf("======the path is %s,will getApplications", path)
 	res, code, err := c.request(path)
 	if err != nil {
 		log.Errorf("Failed to get applications, err: %v", err)
@@ -128,7 +129,9 @@ func (c *eurekaHttpClient) getApplications(path string) (*Applications, error) {
 	for idx := range rj.Response.Applications {
 		ignore := false
 		app := rj.Response.Applications[idx]
+		log.Errorf("======the app name is %s, the app is: %v", app.Name, app)
 		for _, instance := range app.Instances {
+			log.Errorf("======the instance is %v", instance)
 			if ip := net.ParseIP(instance.IPAddr); ip == nil {
 				log.Warnf("the Non-IP IPAddr %s is not allowed, please check your app: %s", instance.IPAddr, app.Name)
 				ignore = true

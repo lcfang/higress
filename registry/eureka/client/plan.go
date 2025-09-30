@@ -73,6 +73,10 @@ func (p *Plan) watch(ch <-chan fargo.AppUpdate) {
 				log.Errorf("get eureka application failed, error : %v", updateItem.Err)
 				continue
 			}
+			if updateItem.App == nil {
+				log.Info("=======get eureka application failed, app is nil")
+				continue
+			}
 			if err := p.handler(updateItem.App); err != nil {
 				log.Errorf("handle eureka application failed, error : %v", err)
 			}

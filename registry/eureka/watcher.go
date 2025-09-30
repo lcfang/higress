@@ -189,6 +189,7 @@ func (w *watcher) doFullRefresh() {
 	for serviceName := range fetchedServices {
 		if _, ok := w.WatchingServices[serviceName]; !ok {
 			log.Info("Subscribe service : %v in registry: %v", serviceName, w.Name)
+			log.Errorf("===will Subscribe service : %v", fetchedServices[serviceName])
 			if err = w.subscribe(fetchedServices[serviceName]); err != nil {
 				log.Errorf("Failed to subscribe service %v, error : %v", serviceName, err)
 				continue
@@ -202,6 +203,9 @@ func (w *watcher) subscribe(service *fargo.Application) error {
 		return fmt.Errorf("service is nil")
 	}
 	callback := func(service *fargo.Application) error {
+		if service == nil {
+			return fmt.Errorf("====service is nil in callback handler")
+		}
 		defer w.UpdateService()
 		log.Infof("====subscribe service, serviceName:%s", service.Name)
 		log.Infof("====subscribe service, serviceName:%s, len(instances):%d", service.Name, len(service.Instances))
